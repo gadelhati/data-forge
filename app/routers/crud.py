@@ -104,104 +104,97 @@ def import_form(request: Request):
 
 
 @router.post("/import")
-async def import_file(
-    file: UploadFile = File(...),
+async def import_files(
+    files: list[UploadFile] = File(...),
     concatenar: bool = Form(False),
     substituir_geotiff: bool = Form(False),
 ):
-    """Importa um arquivo JSON, GeoJSON, XML ou GeoTIFF, substituindo ou concatenando registros.
-    
-    Aceita:
-    - JSON/GeoJSON/XML (.json, .geojson, .xml): carrega como registros
-    - GeoTIFF (.tif, .tiff): processa raster e adiciona como registro com metadados
-    
-    Parâmetros:
-    - concatenar: se True e arquivo é JSON/GeoJSON, concatena aos dados existentes
-    - substituir_geotiff: se True e arquivo é GeoTIFF, remove GeoTIFFs anteriores
-    """
+    """Importa um ou mais arquivos JSON, GeoJSON, XML ou GeoTIFF."""
     from app.services.geotiff import store as geotiff_store
-    
-    dest = settings.upload_dir / file.filename
-    
-    # Detecta o tipo de arquivo
-    is_geotiff = file.filename.lower().endswith((".tif", ".tiff"))
-    
-    try:
-        if is_geotiff:
-            # Processa GeoTIFF
-            if not file.filename.lower().endswith((".tif", ".tiff")):
-                raise HTTPException(400, "Envie um arquivo .tif ou .tiff")
 
-            file_bytes = await file.read()
-            file_id, path = geotiff_store.save_geotiff(file_bytes, file.filename)
+    valid_files = [f for f in files if f.filename]
+    if not valid_files:
+        raise HTTPException(400, "Nenhum arquivo válido selecionado.")
 
-            metadata = geotiff_store.extract_all_metadata(path)
-            preview = geotiff_store.generate_leaflet_preview(path, file_id)
-            
-            # Se substituir_geotiff, limpa os GeoTIFFs anteriores
-            if substituir_geotiff:
-                # Remove registros GeoTIFF anteriores
-                store.records = [
-                    r for r in store.records
-                    if r.get(store.SOURCE_TYPE_FIELD) != "geotiff"
-                ]
+    # Limpa GeoTIFFs anteriores uma única vez antes de processar o lote
+    if substituir_geotiff and any(
+        f.filename.lower().endswith((".tif", ".tiff")) for f in valid_files
+    ):
+        store.records = [
+            r for r in store.records
+            if r.get(store.SOURCE_TYPE_FIELD) != "geotiff"
+        ]
 
-            # Adiciona o novo GeoTIFF ao store
-            bounds = preview.get("bounds", [0, 0, 0, 0])
-            bounds_geom = preview.get("bounds_geojson")
-            
-            # Se bounds_geojson não foi gerado, cria a partir de bounds Leaflet:
-            # [[sul, oeste], [norte, leste]].
-            if not bounds_geom and len(bounds) == 2:
-                south, west = bounds[0]
-                north, east = bounds[1]
-                bounds_geom = {
-                    "type": "Polygon",
-                    "coordinates": [[
-                        [west, south],
-                        [east, south],
-                        [east, north],
-                        [west, north],
-                        [west, south],
-                    ]]
-                }
+    tabular_loaded_in_batch = False
+
+    for file in valid_files:
+        is_geotiff = file.filename.lower().endswith((".tif", ".tiff"))
+
+        try:
+            if is_geotiff:
+                file_bytes = await file.read()
+                file_id, path = geotiff_store.save_geotiff(file_bytes, file.filename)
+
+                metadata = geotiff_store.extract_all_metadata(path)
+                preview = geotiff_store.generate_leaflet_preview(path, file_id)
+
+                bounds = preview.get("bounds", [0, 0, 0, 0])
+                bounds_geom = preview.get("bounds_geojson")
+
+                if not bounds_geom and len(bounds) == 2:
+                    south, west = bounds[0]
+                    north, east = bounds[1]
+                    bounds_geom = {
+                        "type": "Polygon",
+                        "coordinates": [[
+                            [west, south],
+                            [east, south],
+                            [east, north],
+                            [west, north],
+                            [west, south],
+                        ]]
+                    }
+                else:
+                    bounds_geom = bounds_geom or {
+                        "type": "Point",
+                        "coordinates": [0, 0]
+                    }
+
+                store.add_geotiff_metadata(
+                    file_id=file_id,
+                    filename=file.filename,
+                    metadata=metadata,
+                    bounds_geometry=bounds_geom,
+                    preview_path=str(preview.get("preview_url", "")),
+                    source_paths=[
+                        Path(path),
+                        BASE_DIR / "static" / "previews" / f"{file_id}.png",
+                    ],
+                )
+
             else:
-                # Fallback seguro
-                bounds_geom = bounds_geom or {
-                    "type": "Point",
-                    "coordinates": [0, 0]
-                }
-            
-            store.add_geotiff_metadata(
-                file_id=file_id,
-                filename=file.filename,
-                metadata=metadata,
-                bounds_geometry=bounds_geom,
-                preview_path=str(preview.get("preview_url", "")),
-                source_paths=[
-                    Path(path),
-                    BASE_DIR / "static" / "previews" / f"{file_id}.png",
-                ],
-            )
-            
-        else:
-            # Processa JSON, GeoJSON ou XML
-            with open(dest, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-            
-            mode = "append" if concatenar else "replace"
-            store.load(dest, mode=mode)
-    
-    except HTTPException:
-        raise
-    except (ValueError, Exception) as exc:
-        detail = "Falha ao importar arquivo"
-        if is_geotiff:
-            detail = f"Falha ao processar GeoTIFF: {exc}"
-        else:
-            detail = f"Falha ao importar JSON, GeoJSON ou XML: {exc}"
-        raise HTTPException(status_code=400, detail=detail) from exc
-    
+                dest = settings.upload_dir / Path(file.filename).name
+                with open(dest, "wb") as buffer:
+                    shutil.copyfileobj(file.file, buffer)
+
+                # Primeiro arquivo tabular respeita o checkbox; os demais do lote concatenam
+                if not tabular_loaded_in_batch:
+                    mode = "append" if concatenar else "replace"
+                    tabular_loaded_in_batch = True
+                else:
+                    mode = "append"
+
+                store.load(dest, mode=mode)
+
+        except HTTPException:
+            raise
+        except (ValueError, Exception) as exc:
+            if is_geotiff:
+                detail = f"Falha ao processar GeoTIFF '{file.filename}': {exc}"
+            else:
+                detail = f"Falha ao importar '{file.filename}': {exc}"
+            raise HTTPException(status_code=400, detail=detail) from exc
+
     return RedirectResponse("/", status_code=303)
 
 
