@@ -1,53 +1,76 @@
 {% extends "base.html" %}
 {# Formulário integrado para importar JSON, GeoJSON, XML e GeoTIFF. #}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/pages.css') }}">
+{% endblock %}
 {% block content %}
-<h2>Importar Dados</h2>
-
-{% if has_data %}
-<div class="import-info">
-    <p>
-        Dados já carregados: <strong>{{ current_format }}</strong>
-        {% if source_filenames %}
-            (arquivo{{ "s" if source_filenames|length > 1 else "" }}: {{ source_filenames | join(", ") }})
-        {% endif %}
-    </p>
-</div>
-{% endif %}
-
-<form method="post" action="/import" enctype="multipart/form-data">
-    <fieldset>
-        <legend>Selecione um arquivo</legend>
-        <input 
-            type="file" 
-            name="files" 
-            accept="application/json,application/geo+json,application/xml,text/xml,.json,.geojson,.xml,.tif,.tiff" 
-            multiple
-            required
-        >
-        <small>Aceita: JSON, GeoJSON, XML (.xml) ou GeoTIFF (.tif, .tiff)</small>
-    </fieldset>
+<div class="df up">
 
     {% if has_data %}
-    <fieldset>
-        <legend>Opções de carregamento</legend>
-        
-        <label class="import-concat">
-            <input type="checkbox" name="concatenar" value="true">
-            Concatenar com os dados já carregados
-            <small>(apenas para JSON, GeoJSON ou XML do mesmo formato)</small>
-        </label>
-        
-        <label class="import-replace-geotiff">
-            <input type="checkbox" name="substituir_geotiff" value="true">
-            Substituir GeoTIFFs anteriores
-            <small>(remove rasters carregados previamente)</small>
-        </label>
-    </fieldset>
+    <p class="import-info up-info">Dados já carregados: <strong>{{ current_format }}</strong>{% if source_filenames %} · {{ source_filenames|length }} arquivo{{ "s" if source_filenames|length > 1 else "" }} (veja a lista acima){% endif %}</p>
     {% endif %}
 
-    <div class="form-actions">
-        <button type="submit">Importar</button>
-        <a href="/">Cancelar</a>
-    </div>
-</form>
+    <form method="post" action="/import" enctype="multipart/form-data" class="df up-form">
+        <fieldset class="df-card">
+            <legend>Selecione os arquivos</legend>
+            <div class="df-card__body">
+                <label class="df-drop" data-drop>
+                    <span class="df-drop__icon" aria-hidden="true">⇪</span>
+                    <span class="df-drop__title">Arraste arquivos aqui ou clique para escolher</span>
+                    <small>Aceita: JSON, GeoJSON, XML (.xml) ou GeoTIFF (.tif, .tiff)</small>
+                    <input
+                        type="file"
+                        name="files"
+                        accept="application/json,application/geo+json,application/xml,text/xml,.json,.geojson,.xml,.tif,.tiff"
+                        multiple
+                        required
+                    >
+                </label>
+                <ul class="df-filelist" data-drop-list></ul>
+            </div>
+        </fieldset>
+
+        {% if has_data %}
+        <fieldset class="df-card">
+            <legend>Opções de carregamento</legend>
+            <div class="df-card__body">
+                <label class="import-concat df-check">
+                    <input type="checkbox" name="concatenar" value="true">
+                    <span>Concatenar com os dados já carregados
+                    <small>Apenas para JSON, GeoJSON ou XML do mesmo formato</small></span>
+                </label>
+                <label class="import-replace-geotiff df-check">
+                    <input type="checkbox" name="substituir_geotiff" value="true">
+                    <span>Substituir GeoTIFFs anteriores
+                    <small>Remove rasters carregados previamente</small></span>
+                </label>
+            </div>
+        </fieldset>
+        {% endif %}
+
+        <div class="form-actions df-actions">
+            <a class="df-btn" href="/">Cancelar</a>
+            <button type="submit" class="df-btn df-btn--primary">Importar</button>
+        </div>
+    </form>
+</div>
+<script>
+(function () {
+    var drop = document.querySelector('[data-drop]');
+    if (!drop) return;
+    var input = drop.querySelector('input[type=file]');
+    var list = document.querySelector('[data-drop-list]');
+    function render() {
+        list.innerHTML = '';
+        Array.prototype.forEach.call(input.files, function (f) {
+            var li = document.createElement('li');
+            li.textContent = f.name + ' (' + (f.size / 1048576).toFixed(1) + ' MB)';
+            list.appendChild(li);
+        });
+    }
+    input.addEventListener('change', render);
+    ['dragenter', 'dragover'].forEach(function (e) { drop.addEventListener(e, function () { drop.classList.add('is-over'); }); });
+    ['dragleave', 'drop'].forEach(function (e) { drop.addEventListener(e, function () { drop.classList.remove('is-over'); }); });
+})();
+</script>
 {% endblock %}

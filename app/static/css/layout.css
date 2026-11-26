@@ -1,0 +1,173 @@
+
+
+/* Layout de tela cheia: a página ocupa exatamente a janela e só o conteúdo interno rola.
+   Carregue depois de style.css, datatable.css e pages.css. */
+html, body { height:100%; }
+body {
+  max-width:none; width:100%; margin:0; padding:.75rem 1.25rem;
+  box-sizing:border-box; height:100vh; height:100dvh;
+  display:flex; flex-direction:column; gap:.75rem; overflow:hidden;
+}
+body > header {
+  flex:none; display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;
+}
+body > header h1 { margin:0; font-size:1.2rem; }
+main {
+  flex:1 1 auto; min-height:0; min-width:0;
+  display:flex; flex-direction:column; overflow:auto;
+}
+
+/* Datatable: ocupa o espaço restante, rolagem só dentro da tabela */
+main > .dt { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+main > .dt > * { flex:none; }
+main > .dt > .dt-scroll { flex:1 1 auto; min-height:0; max-height:none; }
+main:has(> .dt) { overflow:hidden; }
+
+/* Demais páginas na largura completa */
+.df { max-width:none; width:100%; box-sizing:border-box; }
+
+/* Mapa: preenche a altura disponível, a lista lateral rola sozinha */
+main:has(.df-map) { overflow:hidden; }
+main:has(.df-map) > .df { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+.df-map { flex:1 1 auto; min-height:0; align-items:stretch; }
+.df-map .map-container { height:100%; min-height:0; }
+.df-map > :last-child { min-height:0; overflow:auto; }
+
+@media print {
+  body { height:auto; overflow:visible; display:block; }
+  main, main > .dt, main > .dt > .dt-scroll { overflow:visible; }
+}
+
+/* Mapa sem coluna lateral */
+.df-map { grid-template-columns:1fr !important; }
+
+/* Lista de arquivos importados: faixa compacta e recolhível, igual em todas as páginas */
+.fl {
+  flex:none; font:13px/1.4 system-ui, sans-serif; color:#1f2733;
+  border:1px solid #e3e7ee; border-radius:8px; background:#fff;
+}
+.fl-head {
+  display:flex; align-items:center; gap:.5rem; padding:.4rem .75rem;
+  cursor:pointer; list-style:none; user-select:none;
+}
+.fl-head::-webkit-details-marker { display:none; }
+.fl-title { font-weight:600; }
+.fl-total { padding:0 .45rem; border-radius:999px; background:#eef2f7; color:#5b6677; font-size:12px; font-variant-numeric:tabular-nums; }
+.fl-chevron { margin-left:auto; color:#8a94a3; transition:transform .15s; }
+.fl:not([open]) .fl-chevron { transform:rotate(-90deg); }
+.fl-list {
+  list-style:none; margin:0; padding:.4rem; border-top:1px solid #e3e7ee;
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(15rem, 1fr)); gap:.35rem;
+  max-height:7.5rem; overflow:auto;
+}
+.fl-item {
+  display:flex; align-items:center; gap:.4rem; min-width:0;
+  padding:.25rem .3rem .25rem .55rem; border:1px solid #e3e7ee; border-radius:6px; background:#f8fafc;
+}
+.fl-item:hover { border-color:#c9d2df; }
+.fl-name {
+  flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:.35rem;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500;
+}
+.fl-name .layer-name { overflow:hidden; text-overflow:ellipsis; }
+.fl-name input { margin:0; flex:none; }
+.fl .layer-swatch { flex:none; width:.7rem; height:.7rem; border-radius:3px; }
+.fl-count { flex:none; color:#5b6677; font-size:12px; font-variant-numeric:tabular-nums; }
+.fl-count::after { content:" reg."; }
+.fl-tools { flex:none; display:flex; align-items:center; gap:.15rem; }
+.fl-tools .layer-opacity { width:4rem; margin:0 .2rem; }
+.fl-item form { margin:0; flex:none; }
+.fl-btn {
+  display:inline-grid; place-items:center; width:1.5rem; height:1.5rem; padding:0;
+  border:1px solid transparent; border-radius:5px; background:transparent;
+  color:#5b6677; font-size:10px; cursor:pointer;
+}
+.fl-btn:hover { background:#eef2f7; border-color:#e3e7ee; color:#1f2733; }
+.fl-btn--danger:hover { background:#fdecec; border-color:#f5c2c2; color:#c62828; }
+.map-layers-toggle { grid-template-columns:repeat(auto-fill, minmax(20rem, 1fr)); }
+
+/* Importar: cabe na altura restante; só a lista de arquivos escolhidos rola */
+main:has(> .up) { overflow:hidden; }
+main > .up { flex:1 1 auto; min-height:0; gap:.6rem; }
+.up-info { margin:0; color:#5b6677; flex:none; }
+.up-form {
+  flex:1 1 auto; min-height:0; max-width:none; gap:.6rem;
+  display:grid !important; grid-template-columns:minmax(0,1fr) minmax(16rem,22rem);
+  grid-template-rows:minmax(0,1fr) auto; align-content:stretch;
+}
+.up-form > fieldset { margin:0; min-height:0; min-width:0; }
+.up-form > fieldset:first-of-type { grid-column:1; grid-row:1; display:flex; flex-direction:column; }
+.up-form > fieldset:first-of-type > .df-card__body { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+.up-form > fieldset:nth-of-type(2) { grid-column:2; grid-row:1; align-self:start; }
+.up-form > fieldset:only-of-type { grid-column:1 / -1; }
+.up-form > .df-actions { grid-column:1 / -1; grid-row:2; padding:0; }
+.up .df-drop { flex:none; padding:1rem; }
+.up .df-filelist { flex:0 1 auto; min-height:0; overflow:auto; align-content:flex-start; }
+@media (max-width:800px) {
+  .up-form { grid-template-columns:1fr; grid-template-rows:auto; }
+  .up-form > fieldset:nth-of-type(2) { grid-column:1; grid-row:auto; }
+  main:has(> .up) { overflow:auto; }
+}
+
+/* ===== v6: cartas retas, sobrepostas da direita para a esquerda ===== */
+body > header { flex-wrap:nowrap; align-items:center; min-height:0; }
+body > header .tabs { flex:none; }
+header .fl {
+  flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:.6rem;
+  border:0; background:transparent;
+}
+header .fl::details-content { flex:1 1 auto; min-width:0; }
+header .fl-head { flex:none; flex-direction:column; align-items:center; gap:.15rem; padding:.2rem .4rem; border-radius:6px; }
+header .fl-head:hover { background:#eef2f7; }
+header .fl-title { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:#5b6677; }
+header .fl-chevron { margin:0; transform:rotate(-90deg); }
+header .fl:not([open]) .fl-chevron { transform:rotate(90deg); }
+
+/* A sequência começa à direita; cada carta seguinte cobre parte da anterior.
+   A sobreposição não muda ao passar o mouse: apenas a carta ativa sobe. */
+header .fl-list {
+  flex:1 1 auto; min-width:0; display:flex; flex-direction:row-reverse;
+  justify-content:flex-start; align-items:center;
+  max-height:none; overflow-x:auto; overflow-y:hidden;
+  padding:.65rem .75rem .45rem; border:0; gap:0; scrollbar-width:thin;
+}
+header .fl-item {
+  position:relative; flex:0 0 6.5rem; box-sizing:border-box;
+  width:6.5rem; height:7.25rem; margin:0; padding:.45rem .45rem .35rem;
+  display:flex; flex-direction:column; align-items:stretch; gap:.2rem;
+  border:1px solid #d6dde8; border-radius:9px;
+  background:linear-gradient(180deg,#fff 0%,#f4f7fb 100%);
+  box-shadow:0 1px 2px rgba(20,30,50,.08), 0 4px 10px rgba(20,30,50,.06);
+  transform:translateY(0);
+  transition:transform .16s ease-out, box-shadow .16s ease-out;
+}
+header .fl-item + .fl-item { margin-right:-2.2rem; }
+header .fl-item:hover, header .fl-item:focus-within {
+  z-index:5; transform:translateY(-.2rem);
+  box-shadow:0 6px 18px rgba(20,30,50,.18);
+}
+
+header .fl-name {
+  flex:1 1 auto; display:flex; flex-wrap:wrap; align-content:flex-start; gap:.25rem;
+  white-space:normal; overflow:hidden; font-size:12px; line-height:1.25; padding-right:1rem;
+  word-break:break-word;
+}
+header .fl-name .layer-name, header span.fl-name {
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+}
+header .fl-count { font-size:11px; }
+header .fl-tools { display:flex; flex-wrap:wrap; justify-content:space-between; gap:0; }
+header .fl-tools .layer-opacity { width:100%; margin:0; height:.8rem; }
+header .fl-tools .fl-btn { width:1.25rem; height:1.1rem; }
+header .fl-item form { position:absolute; top:.2rem; right:.2rem; }
+header .fl-item form .fl-btn { width:1.15rem; height:1.15rem; opacity:.45; }
+header .fl-item:hover form .fl-btn { opacity:1; }
+
+@media (max-width:800px) {
+  body > header { flex-wrap:wrap; }
+  header .fl { flex-basis:100%; display:block; }
+  header .fl-head { flex-direction:row; justify-content:flex-start; }
+  header .fl-list { max-width:100%; box-sizing:border-box; }
+}
+@media (prefers-reduced-motion:reduce) { header .fl-item { transition:none; } }
+

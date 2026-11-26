@@ -1,47 +1,69 @@
 {% extends "base.html" %}
 {# Formulário de criação/edição, com editor de geometria quando a fonte é GeoJSON. #}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/pages.css') }}">
+{% endblock %}
 {% block content %}
-<h2>{{ "Novo registro" if is_new else "Editar registro" }}</h2>
-<form method="post" action="{{ '/records/new' if is_new else '/records/' + record[id_field] + '/edit' }}">
-    {% for col in columns %}
-    {% if col != id_field %}
-    <label>
-        {{ col }}
-        <input type="text" name="{{ col }}" value="{{ record.get(col, '') }}">
-    </label>
-    {% endif %}
-    {% endfor %}
-    {% if is_geojson %}
-    <fieldset class="geom-editor" data-geom-root>
-        <legend>Geometria (GeoJSON)</legend>
-
-        <label>
-            Tipo
-            <select data-geom-type>
-                {% for t in geometry_types %}
-                <option value="{{ t }}">{{ t }}</option>
-                {% endfor %}
-            </select>
-        </label>
-
-        <div data-geom-editor class="geom-coords"></div>
-
-        <div data-geom-raw hidden>
-            <label>
-                Geometria (JSON bruto)
-                <textarea data-geom-raw-textarea rows="6"></textarea>
-            </label>
+<div class="df">
+    <header class="df-head">
+        <div>
+            <h2 class="df-title">{{ "Novo registro" if is_new else "Editar registro" }}</h2>
+            {% if not is_new %}<p class="df-subtitle">ID: <code>{{ record[id_field] }}</code></p>{% endif %}
         </div>
+        <a class="df-btn" href="/">← Voltar</a>
+    </header>
 
-        <button type="button" data-geom-toggle-raw class="geom-toggle-raw">Editar como JSON bruto</button>
+    <form method="post" action="{{ '/records/new' if is_new else '/records/' + record[id_field] + '/edit' }}" class="df" style="max-width:none">
+        <section class="df-card">
+            <h3 class="df-card__head">Atributos</h3>
+            <div class="df-card__body df-grid">
+                {% for col in columns %}
+                {% if col != id_field %}
+                <label class="df-field">
+                    <span class="df-field__label" title="{{ col }}">{{ col }}</span>
+                    <input type="text" name="{{ col }}" value="{{ record.get(col, '') }}">
+                </label>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </section>
 
-        <input type="hidden" name="{{ geometry_field }}" data-geom-hidden>
-        <script type="application/json" id="geom-initial-data">{{ (geometry_value or "{}") | safe }}</script>
-    </fieldset>
-    {% endif %}
-    <button type="submit">Salvar</button>
-    <a href="/">Cancelar</a>
-</form>
+        {% if is_geojson %}
+        <fieldset class="geom-editor df-card" data-geom-root>
+            <legend>Geometria (GeoJSON)</legend>
+            <div class="df-card__body">
+                <label class="df-field" style="max-width:16rem">
+                    <span class="df-field__label">Tipo</span>
+                    <select data-geom-type>
+                        {% for t in geometry_types %}
+                        <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+
+                <div data-geom-editor class="geom-coords"></div>
+
+                <div data-geom-raw hidden>
+                    <label class="df-field">
+                        <span class="df-field__label">Geometria (JSON bruto)</span>
+                        <textarea data-geom-raw-textarea rows="8"></textarea>
+                    </label>
+                </div>
+
+                <div><button type="button" data-geom-toggle-raw class="geom-toggle-raw df-btn df-btn--sm">Editar como JSON bruto</button></div>
+
+                <input type="hidden" name="{{ geometry_field }}" data-geom-hidden>
+                <script type="application/json" id="geom-initial-data">{{ (geometry_value or "{}") | safe }}</script>
+            </div>
+        </fieldset>
+        {% endif %}
+
+        <div class="df-actions df-actions--sticky">
+            <a class="df-btn" href="/">Cancelar</a>
+            <button type="submit" class="df-btn df-btn--primary">Salvar</button>
+        </div>
+    </form>
+</div>
 {% endblock %}
 
 {% block scripts %}

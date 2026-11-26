@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <title>Data Forge</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    {% block head %}{% endblock %}
+    <link rel="stylesheet" href="{{ url_for('static', path='css/layout.css') }}">
     <link rel="icon" type="image/png" href="{{ url_for('static', path='img/weather.png') }}">
 </head>
 <body>
@@ -15,8 +17,8 @@
             <a href="/map" class="{{ 'active' if request.url.path == '/map' else '' }}">Mapa</a>
             <a href="/import" class="{{ 'active' if request.url.path == '/import' else '' }}">Importar</a>
         </nav>
+        {% include "file-list.html" %}
     </header>
-    {% include "file-list.html" %}
     <main>
         {% block content %}{% endblock %}
     </main>

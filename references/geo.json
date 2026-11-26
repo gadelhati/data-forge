@@ -1,0 +1,50 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pão de Açúcar",
+        "category": "Ponto turístico"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-43.1566, -22.9486]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Trecho da orla",
+        "type": "Rota"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-43.1729, -22.9519],
+          [-43.1650, -22.9500],
+          [-43.1566, -22.9486]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Área de exemplo",
+        "zone": "Teste"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-43.1800, -22.9600],
+            [-43.1700, -22.9600],
+            [-43.1700, -22.9500],
+            [-43.1800, -22.9500],
+            [-43.1800, -22.9600]
+          ]
+        ]
+      }
+    }
+  ]
+}

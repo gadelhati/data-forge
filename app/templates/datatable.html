@@ -1,126 +1,169 @@
 {% extends "base.html" %}
 {# Tabela de registros com ações de edição, exclusão, importação e exportação. #}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='css/datatable.css') }}">
+{% endblock %}
 {% block content %}
 {# Renderiza valores aninhados: objetos viram linhas chave/valor e listas viram linhas numeradas. #}
 {% macro render_value(value) -%}
     {%- if value is mapping -%}
         {%- if value -%}
-        <table class="nested">
+        <table class="dt-nested">
             {%- for key, item in value.items() %}
             <tr><th scope="row">{{ key }}</th><td>{{ render_value(item) }}</td></tr>
             {%- endfor %}
         </table>
-        {%- else -%}{}{%- endif -%}
+        {%- else -%}<span class="dt-empty">{}</span>{%- endif -%}
     {%- elif value is iterable and value is not string -%}
         {%- if value -%}
-        <table class="nested">
+        <table class="dt-nested">
             {%- for item in value %}
             <tr><th scope="row">{{ loop.index0 }}</th><td>{{ render_value(item) }}</td></tr>
             {%- endfor %}
         </table>
-        {%- else -%}[]{%- endif -%}
-    {%- elif value is none -%}
+        {%- else -%}<span class="dt-empty">[]</span>{%- endif -%}
+    {%- elif value is none -%}<span class="dt-empty">—</span>
     {%- else -%}{{ value }}
     {%- endif -%}
 {%- endmacro %}
-<div class="toolbar">
-    {% if can_create_record %}
-    <a href="/records/new">+ Novo registro</a>
-    {% endif %}
-    <a href="/export">Exportar JSON</a>
-    <a href="/export/xml">Exportar XML</a>
-    <a href="/export/csv">Exportar CSV</a>
-    <a href="/import">Importar outro arquivo</a>
-    <a href="/map">Ver mapa</a>
-</div>
-<div class="dashboard-controls">
-    <label for="record-search">Buscar nos registros</label>
-    <input type="search" id="record-search" placeholder="Digite para filtrar...">
-    <span id="record-count" role="status" aria-live="polite"></span>
-</div>
-<div class="table-wrap">
-<table id="records-table">
-    <thead>
-        <tr>
-            <th scope="col" style="width: 2rem;" title="Tipo">T</th>
-            {% for col in columns %}
-            <th scope="col" aria-sort="none">
-                <button type="button" class="sort-button" data-sort-column>
-                    <span class="sort-indicator" aria-hidden="true">↕</span>
-                    <span>{{ col }}</span>
-                </button>
-            </th>
-            {% endfor %}
-            {% if is_geojson %}
-            <th scope="col" aria-sort="none">
-                <button type="button" class="sort-button" data-sort-column>
-                    <span class="sort-indicator" aria-hidden="true">↕</span>
-                    <span>geometria</span>
-                </button>
-            </th>
+
+{% set extra_cols = (1 if is_geojson else 0) + (1 if show_layer else 0) %}
+<section class="dt" data-datatable>
+    <header class="dt-toolbar">
+        <div class="dt-toolbar__primary">
+            {% if can_create_record %}
+            <a class="dt-btn dt-btn--primary" href="/records/new">+ Novo registro</a>
             {% endif %}
-            {% if show_layer %}
-            <th scope="col" aria-sort="none">
-                <button type="button" class="sort-button" data-sort-column>
-                    <span class="sort-indicator" aria-hidden="true">↕</span>
-                    <span>camada</span>
-                </button>
-            </th>
-            {% endif %}
-            <th scope="col">Ações</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for record in records %}
-        <tr>
-            <td class="type-indicator" title="{{ record.get('_source_type', 'desconhecido') }}">
-                {% if record.get('_source_type') == 'geotiff' %}
-                🗺️
-                {% elif record.get('_geometry') %}
-                🔷
-                {% else %}
-                📄
-                {% endif %}
-            </td>
-            {% for col in columns %}
-            <td><div class="cell">{{ render_value(record.get(col, "")) }}</div></td>
-            {% endfor %}
-            {% if is_geojson %}
-            <td class="geometria">{{ record.get(geometry_field, "") }}</td>
-            {% endif %}
-            {% if show_layer %}
-            <td class="camada">
-                {% if is_geojson and record.get(layer_field) %}
-                <a href="/map?layer={{ record.get(source_id_field) | urlencode }}" title="Ver esta camada enquadrada no mapa">{{ record.get(layer_field) }}</a>
-                {% else %}
-                {{ record.get(layer_field, "") }}
-                {% endif %}
-            </td>
-            {% endif %}
-            <td class="acoes">
-                <div class="action-controls">
-                    {% if record.get('_source_type') == 'geotiff' %}
-                    <a href="/map?layer={{ record.get(source_id_field) | urlencode }}" title="Visualizar no mapa">Mapa</a>
-                    {% else %}
-                    <a href="/records/{{ record[id_field] }}/edit">Editar</a>
-                    {% endif %}
-                    <form method="post" action="/records/{{ record[id_field] }}/delete">
-                        <button type="submit" onclick="return confirm('Excluir este registro?')">Excluir</button>
-                    </form>
+            <a class="dt-btn" href="/import">Importar</a>
+            <a class="dt-btn" href="/map">Ver mapa</a>
+            <details class="dt-menu">
+                <summary class="dt-btn">Exportar ▾</summary>
+                <div class="dt-menu__panel">
+                    <a href="/export">JSON</a>
+                    <a href="/export/xml">XML</a>
+                    <a href="/export/csv">CSV</a>
                 </div>
-            </td>
-        </tr>
-        {% endfor %}
-        <tr id="no-records-match" hidden>
-            <td colspan="{{ columns|length + (1 if is_geojson else 0) + (1 if show_layer else 0) + 3 }}">
-                Nenhum registro corresponde à busca.
-            </td>
-        </tr>
-    </tbody>
-</table>
-</div>
+            </details>
+        </div>
+        <div class="dt-toolbar__secondary">
+            <details class="dt-menu">
+                <summary class="dt-btn">Colunas ▾</summary>
+                <div class="dt-menu__panel dt-menu__panel--columns" data-column-menu></div>
+            </details>
+            <div class="dt-segmented" role="group" aria-label="Densidade">
+                <button type="button" data-density="compact">Compacta</button>
+                <button type="button" data-density="normal" aria-pressed="true">Normal</button>
+                <button type="button" data-density="wrap">Expandida</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="dt-controls dashboard-controls">
+        <label class="dt-search" for="record-search">
+            <span class="dt-visually-hidden">Buscar nos registros</span>
+            <span class="dt-search__icon" aria-hidden="true">⌕</span>
+            <input type="search" id="record-search" placeholder="Filtrar registros…" autocomplete="off">
+        </label>
+        <span id="record-count" class="dt-count" role="status" aria-live="polite"></span>
+    </div>
+
+    <div class="dt-scroll table-wrap" tabindex="0" aria-label="Tabela de registros, role para ver mais">
+        <table id="records-table" class="dt-table">
+            <thead>
+                <tr>
+                    <th scope="col" class="dt-col-type" title="Tipo">T</th>
+                    {% for col in columns %}
+                    <th scope="col" aria-sort="none" data-col="{{ col }}">
+                        <button type="button" class="sort-button" data-sort-column>
+                            <span>{{ col }}</span>
+                            <span class="sort-indicator" aria-hidden="true">↕</span>
+                        </button>
+                    </th>
+                    {% endfor %}
+                    {% if is_geojson %}
+                    <th scope="col" aria-sort="none" data-col="geometria">
+                        <button type="button" class="sort-button" data-sort-column>
+                            <span>geometria</span><span class="sort-indicator" aria-hidden="true">↕</span>
+                        </button>
+                    </th>
+                    {% endif %}
+                    {% if show_layer %}
+                    <th scope="col" aria-sort="none" data-col="camada">
+                        <button type="button" class="sort-button" data-sort-column>
+                            <span>camada</span><span class="sort-indicator" aria-hidden="true">↕</span>
+                        </button>
+                    </th>
+                    {% endif %}
+                    <th scope="col" class="dt-col-actions">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                {% set stype = record.get('_source_type') %}
+                <tr data-record-row>
+                    <td class="dt-col-type type-indicator" title="{{ stype or 'desconhecido' }}">
+                        {% if stype == 'geotiff' %}<span class="dt-badge dt-badge--raster">R</span>
+                        {% elif record.get('_geometry') %}<span class="dt-badge dt-badge--vector">V</span>
+                        {% else %}<span class="dt-badge">D</span>{% endif %}
+                    </td>
+                    {% for col in columns %}
+                    <td><div class="cell dt-cell">{{ render_value(record.get(col, "")) }}</div></td>
+                    {% endfor %}
+                    {% if is_geojson %}
+                    <td class="geometria"><div class="cell dt-cell dt-mono">{{ record.get(geometry_field, "") }}</div></td>
+                    {% endif %}
+                    {% if show_layer %}
+                    <td class="camada"><div class="cell dt-cell">
+                        {% if is_geojson and record.get(layer_field) %}
+                        <a href="/map?layer={{ record.get(source_id_field) | urlencode }}" title="Ver esta camada no mapa">{{ record.get(layer_field) }}</a>
+                        {% else %}{{ record.get(layer_field, "") }}{% endif %}
+                    </div></td>
+                    {% endif %}
+                    <td class="dt-col-actions acoes">
+                        <div class="action-controls">
+                            {% if stype == 'geotiff' %}
+                            <a class="dt-icon-btn" href="/map?layer={{ record.get(source_id_field) | urlencode }}" title="Visualizar no mapa">Mapa</a>
+                            {% else %}
+                            <a class="dt-icon-btn" href="/records/{{ record[id_field] }}/edit" title="Editar">Editar</a>
+                            {% endif %}
+                            <form method="post" action="/records/{{ record[id_field] }}/delete">
+                                <button type="submit" class="dt-icon-btn dt-icon-btn--danger" onclick="return confirm('Excluir este registro?')">Excluir</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td class="dt-empty-state" colspan="{{ columns|length + extra_cols + 2 }}">Nenhum registro importado ainda.</td></tr>
+                {% endfor %}
+                <tr id="no-records-match" hidden>
+                    <td class="dt-empty-state" colspan="{{ columns|length + extra_cols + 2 }}">Nenhum registro corresponde à busca.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <footer class="dt-footer">
+        <label class="dt-pagesize">Linhas por página
+            <select data-page-size>
+                <option value="25">25</option>
+                <option value="50" selected>50</option>
+                <option value="100">100</option>
+                <option value="250">250</option>
+                <option value="0">Todas</option>
+            </select>
+        </label>
+        <nav class="dt-pager" aria-label="Paginação">
+            <button type="button" class="dt-btn" data-page="first" aria-label="Primeira página">«</button>
+            <button type="button" class="dt-btn" data-page="prev" aria-label="Página anterior">‹</button>
+            <span class="dt-pager__info" data-page-info></span>
+            <button type="button" class="dt-btn" data-page="next" aria-label="Próxima página">›</button>
+            <button type="button" class="dt-btn" data-page="last" aria-label="Última página">»</button>
+        </nav>
+    </footer>
+</section>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', path='js/dashboard.js') }}"></script>
+<script src="{{ url_for('static', path='js/datatable.js') }}"></script>
 {% endblock %}

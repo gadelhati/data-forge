@@ -1,0 +1,167 @@
+/* DataTable — Data Forge. Tudo escopado em .dt para não vazar no resto da interface. */
+.dt {
+  --dt-bg: #ffffff;
+  --dt-surface: #f7f8fa;
+  --dt-header: #eef1f5;
+  --dt-border: #dde2e9;
+  --dt-text: #1d2430;
+  --dt-muted: #6b7686;
+  --dt-accent: #0f766e;
+  --dt-accent-soft: #e3f3f1;
+  --dt-danger: #b42318;
+  --dt-hover: #f2f7ff;
+  --dt-zebra: #fafbfc;
+  --dt-radius: 8px;
+  --dt-pad-y: .5rem;
+  --dt-pad-x: .75rem;
+  --dt-cell-max: 22rem;
+  --dt-font: 13px;
+  font: var(--dt-font)/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--dt-text);
+  display: flex; flex-direction: column; gap: .75rem;
+}
+.dt[data-density="compact"] { --dt-pad-y: .2rem; --dt-pad-x: .5rem; --dt-font: 12px; }
+.dt[data-density="wrap"]    { --dt-pad-y: .65rem; --dt-cell-max: 40rem; }
+
+.dt-visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+
+/* Toolbar */
+.dt-toolbar { display:flex; flex-wrap:wrap; justify-content:space-between; gap:.5rem; }
+.dt-toolbar__primary, .dt-toolbar__secondary { display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; }
+.dt-btn {
+  display:inline-flex; align-items:center; gap:.3rem; height:2rem; padding:0 .8rem;
+  border:1px solid var(--dt-border); border-radius:6px; background:var(--dt-bg);
+  color:var(--dt-text); text-decoration:none; font:inherit; font-weight:500; cursor:pointer;
+  list-style:none; transition:background .15s, border-color .15s;
+}
+.dt-btn::-webkit-details-marker { display:none; }
+.dt-btn:hover { background:var(--dt-surface); border-color:#c5ccd6; }
+.dt-btn:disabled { opacity:.4; cursor:default; }
+.dt-btn--primary { background:var(--dt-accent); border-color:var(--dt-accent); color:#fff; }
+.dt-btn--primary:hover { background:#0b5f58; border-color:#0b5f58; }
+.dt :focus-visible { outline:2px solid var(--dt-accent); outline-offset:2px; }
+
+.dt-menu { position:relative; }
+.dt-menu__panel {
+  position:absolute; z-index:20; top:calc(100% + 4px); left:0; min-width:10rem;
+  background:var(--dt-bg); border:1px solid var(--dt-border); border-radius:var(--dt-radius);
+  box-shadow:0 8px 24px rgba(16,24,40,.12); padding:.3rem; display:flex; flex-direction:column;
+}
+.dt-toolbar__secondary .dt-menu__panel { left:auto; right:0; }
+.dt-menu__panel a, .dt-menu__panel label {
+  padding:.4rem .6rem; border-radius:4px; color:var(--dt-text); text-decoration:none; cursor:pointer;
+  display:flex; gap:.5rem; align-items:center; white-space:nowrap;
+}
+.dt-menu__panel a:hover, .dt-menu__panel label:hover { background:var(--dt-surface); }
+.dt-menu__panel--columns { max-height:20rem; overflow:auto; min-width:14rem; }
+
+.dt-segmented { display:inline-flex; border:1px solid var(--dt-border); border-radius:6px; overflow:hidden; }
+.dt-segmented button { border:0; background:var(--dt-bg); padding:0 .7rem; height:2rem; font:inherit; cursor:pointer; color:var(--dt-muted); }
+.dt-segmented button + button { border-left:1px solid var(--dt-border); }
+.dt-segmented button[aria-pressed="true"] { background:var(--dt-accent-soft); color:var(--dt-accent); font-weight:600; }
+
+/* Busca */
+.dt-controls { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; }
+.dt-search { position:relative; flex:1 1 18rem; max-width:32rem; }
+.dt-search__icon { position:absolute; left:.6rem; top:50%; transform:translateY(-50%); color:var(--dt-muted); font-size:1.1em; }
+.dt-search input {
+  width:100%; height:2.25rem; padding:0 .75rem 0 2rem; box-sizing:border-box;
+  border:1px solid var(--dt-border); border-radius:6px; font:inherit; background:var(--dt-bg);
+}
+.dt-search input:focus { border-color:var(--dt-accent); outline:none; box-shadow:0 0 0 3px var(--dt-accent-soft); }
+.dt-count { color:var(--dt-muted); font-variant-numeric:tabular-nums; }
+
+/* Tabela */
+.dt-scroll {
+  overflow:auto; max-height:calc(100vh - 16rem); min-height:12rem;
+  border:1px solid var(--dt-border); border-radius:var(--dt-radius); background:var(--dt-bg);
+}
+.dt-table { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-variant-numeric:tabular-nums; }
+.dt-table > thead th {
+  position:sticky; top:0; z-index:3; background:var(--dt-header); text-align:left;
+  font-weight:600; font-size:.92em; color:#3a4453; white-space:nowrap;
+  border-bottom:1px solid var(--dt-border); padding:0;
+}
+.dt-table > thead th:not(:has(button)) { padding:var(--dt-pad-y) var(--dt-pad-x); }
+.dt-table > tbody > tr > td {
+  padding:var(--dt-pad-y) var(--dt-pad-x); vertical-align:top;
+  border-bottom:1px solid var(--dt-border); background:var(--dt-bg);
+}
+.dt-table > tbody > tr:nth-child(even) > td { background:var(--dt-zebra); }
+.dt-table > tbody > tr:hover > td { background:var(--dt-hover); }
+.dt-table > tbody > tr:last-child > td { border-bottom:0; }
+.dt-table > * > tr > :not(:last-child) { border-right:1px solid #eceff3; }
+
+.sort-button {
+  all:unset; box-sizing:border-box; display:flex; width:100%; align-items:center; justify-content:space-between;
+  gap:.5rem; padding:var(--dt-pad-y) var(--dt-pad-x); cursor:pointer;
+}
+.sort-button:hover { background:#e3e8ef; }
+.sort-indicator { color:#a3acb9; font-size:.85em; }
+th[aria-sort="ascending"] .sort-indicator, th[aria-sort="descending"] .sort-indicator { color:var(--dt-accent); }
+th[aria-sort="ascending"], th[aria-sort="descending"] { box-shadow:inset 0 -2px 0 var(--dt-accent); }
+
+/* Colunas fixas: tipo à esquerda, ações à direita */
+.dt-col-type { position:sticky; left:0; z-index:2; width:2.25rem; text-align:center !important; }
+.dt-col-actions { position:sticky; right:0; z-index:2; box-shadow:-1px 0 0 var(--dt-border); }
+thead .dt-col-type, thead .dt-col-actions { z-index:4; }
+
+/* Células */
+.dt-cell {
+  max-width:var(--dt-cell-max); max-height:4.5em; overflow:hidden; text-overflow:ellipsis;
+  word-break:break-word; cursor:pointer; position:relative;
+}
+.dt[data-density="compact"] .dt-cell { white-space:nowrap; max-height:1.5em; }
+.dt[data-density="wrap"] .dt-cell { max-height:none; cursor:auto; }
+.dt-cell.is-overflowing:not(.is-expanded)::after {
+  content:""; position:absolute; inset:auto 0 0 0; height:1.2em;
+  background:linear-gradient(transparent, var(--dt-bg));
+}
+.dt-cell.is-expanded { max-height:none; white-space:normal; }
+.dt-mono { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.9em; color:#475263; }
+.dt-empty { color:#b3bac5; }
+
+.dt-nested { border-collapse:collapse; font-size:.92em; margin:0; }
+.dt-nested th, .dt-nested td { padding:.1rem .4rem; border:1px solid #e6e9ee; text-align:left; vertical-align:top; }
+.dt-nested th { background:var(--dt-surface); color:var(--dt-muted); font-weight:500; white-space:nowrap; }
+
+.dt-badge {
+  display:inline-grid; place-items:center; width:1.4rem; height:1.4rem; border-radius:4px;
+  font-size:.75em; font-weight:700; background:#eef0f3; color:#5b6575;
+}
+.dt-badge--vector { background:#e0ecff; color:#1d4ed8; }
+.dt-badge--raster { background:#fdf0d9; color:#a15c07; }
+
+.action-controls { display:flex; gap:.3rem; align-items:center; white-space:nowrap; }
+.action-controls form { margin:0; }
+.dt-icon-btn {
+  display:inline-flex; align-items:center; height:1.7rem; padding:0 .55rem; border-radius:5px;
+  border:1px solid transparent; background:transparent; color:var(--dt-accent);
+  font:inherit; font-size:.92em; font-weight:500; text-decoration:none; cursor:pointer;
+}
+.dt-icon-btn:hover { background:var(--dt-accent-soft); }
+.dt-icon-btn--danger { color:var(--dt-danger); }
+.dt-icon-btn--danger:hover { background:#fdecea; }
+
+.dt-empty-state { text-align:center; padding:2.5rem 1rem !important; color:var(--dt-muted); }
+.dt-table a { color:var(--dt-accent); }
+
+/* Rodapé / paginação */
+.dt-footer { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; color:var(--dt-muted); }
+.dt-pagesize select { margin-left:.4rem; height:2rem; border:1px solid var(--dt-border); border-radius:6px; font:inherit; padding:0 .4rem; background:var(--dt-bg); }
+.dt-pager { display:flex; align-items:center; gap:.3rem; }
+.dt-pager .dt-btn { padding:0 .6rem; }
+.dt-pager__info { min-width:9rem; text-align:center; font-variant-numeric:tabular-nums; }
+
+tr.dt-page-hidden, .dt-col-hidden { display:none !important; }
+
+@media (max-width: 640px) {
+  .dt-scroll { max-height:none; }
+  .dt-col-actions { position:static; box-shadow:none; }
+}
+@media print {
+  .dt-toolbar, .dt-controls, .dt-footer { display:none; }
+  .dt-scroll { max-height:none; overflow:visible; border:0; }
+  tr.dt-page-hidden { display:table-row !important; }
+  .dt-cell { max-height:none; }
+}
